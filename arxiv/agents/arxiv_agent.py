@@ -11,9 +11,9 @@ from arxiv.tools import (
 )
 
 # arXiv論文処理エージェント
-root_agent = Agent(
+arxiv_agent = Agent(
     name="arxiv_paper_processor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     description="arXiv論文のダウンロード、LLMによるメインファイル特定、TeX展開、翻訳戦略決定を行うエージェント",
     instruction=load_instruction("arxiv_agent_instruction.txt"),
     tools=[

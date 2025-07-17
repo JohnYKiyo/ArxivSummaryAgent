@@ -20,10 +20,12 @@ INSTRUCTION = """
    - arXiv URLの場合: 次のステップへ
 
 2. **e-printファイルダウンロード**: arXivからe-printファイル一式をダウンロード
+   - arxiv_eprint_fetcher_toolを使用
+   - output_dirは特に指定しなければNoneにする（デフォルトでagent_outputsディレクトリに保存される）
 
 3. **メインファイル特定**:
    - arxiv_file_lister_toolを使ってファイル一覧を取得
-   - 各ファイルの内容をarxiv_file_reader_toolで確認
+   - arxiv_file_reader_toolを使って各ファイルの内容を確認
    - 取得したファイル情報を分析して、LLMでメインファイルを特定
    - メインファイルが見つからない場合はエラー
 
@@ -31,14 +33,7 @@ INSTRUCTION = """
    - メインファイルが.texの場合、input文を展開して1つのファイルに統合
    - メインファイルがPDFの場合は展開不要
 
-5. **解析対象ファイル情報の伝達**:
-   - arxiv_format_agentを使って、解析対象ファイルの情報を整形
-   - input_file: 解析対象ファイルパス
-   - file_type: "tex" または "pdf"
-   - paper_dir: 保存ディレクトリ
-
 ## メインファイル特定の基準
-
 ### TeXファイルの場合
 1. **begin documentの存在**: メインのTeXファイルには通常begin documentが含まれます
 2. **ファイル名の特徴**:
@@ -57,24 +52,31 @@ INSTRUCTION = """
 
 ## 重要な注意
 - 各ステップでエラーが発生した場合は適切なエラーメッセージを返す
-- format_agentの出力（status, input_file, file_type, paper_dir）を必ず保持すること
-- この情報は後続のエージェントに渡されるため、失ってはいけない
 - メインファイル特定では、複数のファイルを比較して最も適切なものを選択すること
+- 特定したメインファイルの情報を、後続の処理で使えるように出力すること。
+  - status: Literal["success", "error"]
+  - input_file: str
+  - file_type: Literal["tex", "pdf"]
+  - paper_dir: Optional[str] = None # main_file_path
+- 最後にarxiv_format_agentを呼び出して、出力を整形すること。
 
-常に日本語で応答してください。
+なるべく日本語で応答してください。
 """
 
 arxiv_agent = Agent(
-    name="arxiv_paper_processor",
+    name="arxiv_agent",
     model="gemini-2.5-flash",
-    description="arXiv論文のダウンロード、LLMによるメインファイル特定、TeX展開、翻訳戦略決定を行うエージェント",
+    description="arXiv論文のダウンロード、LLMによるメインファイル特定、TeX展開を行うエージェント",
     instruction=INSTRUCTION,
     tools=[
         arxiv_eprint_fetcher_tool,
         arxiv_file_lister_tool,
         arxiv_file_reader_tool,
         arxiv_tex_expander_tool,
-        AgentTool(agent=arxiv_format_agent, skip_summarization=True),
+        AgentTool(
+            agent=arxiv_format_agent,
+            skip_summarization=False,
+        ),
     ],
-    output_key="arxiv_result",
+    output_key="arxiv_agent_result",
 )

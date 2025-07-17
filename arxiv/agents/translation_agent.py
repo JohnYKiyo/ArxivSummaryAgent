@@ -33,7 +33,7 @@ INSTRUCTION = """
 6. translation_format_agentを使って結果を整形
 
 ## 重要な設定
-- 翻訳結果は「output」ディレクトリに保存してください
+- 翻訳結果は agent_outputs ディレクトリに保存してください
 
 常に日本語で応答してください。
 """

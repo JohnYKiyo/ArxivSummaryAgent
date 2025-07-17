@@ -64,7 +64,7 @@ def read_file_for_translation(file_path: str) -> Dict:
 
 
 def save_translation_to_markdown(
-    translated_content: str, output_dir: str, paper_id: str
+    translated_content: str, paper_id: str, output_dir: str = "agent_outputs"
 ) -> Dict:
     """
     翻訳結果をmarkdownファイルとして保存
@@ -334,7 +334,7 @@ def translation_file_reader_tool(file_path: str) -> str:
 
 
 def translation_markdown_saver_tool(
-    translated_content: str, output_dir: str, paper_id: str
+    translated_content: str, paper_id: str, output_dir: str = "agent_outputs"
 ) -> str:
     """
     Google ADK用のツール関数: 翻訳結果をmarkdown保存
@@ -347,7 +347,7 @@ def translation_markdown_saver_tool(
     Returns:
         str: JSON文字列
     """
-    result = save_translation_to_markdown(translated_content, output_dir, paper_id)
+    result = save_translation_to_markdown(translated_content, paper_id, output_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 

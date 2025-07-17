@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import requests
 
 
-def fetch_eprint_from_arxiv(url: str, output_dir: str = "papers") -> Dict:
+def fetch_eprint_from_arxiv(url: str, output_dir: str = "agent_outputs") -> Dict:
     """
     Arxiv URLからe-printファイル一式をダウンロードする
 
@@ -150,13 +150,15 @@ def _save_single_file(content: str, output_dir: str, arxiv_id: str) -> List[str]
 
 
 # Google ADK用のツール関数
-def arxiv_eprint_fetcher_tool(url: str, output_dir: str = "papers") -> str:
+def arxiv_eprint_fetcher_tool(
+    url: str, output_dir: Optional[str] = "agent_outputs"
+) -> str:
     """
     Google ADK用のツール関数: Arxivからe-printファイル一式を取得
 
     Args:
         url: Arxiv論文のURL
-        output_dir: 保存先ディレクトリ
+        output_dir: 保存先ディレクトリ（Noneの場合は"agent_outputs"を使用）
 
     Returns:
         str: JSON文字列

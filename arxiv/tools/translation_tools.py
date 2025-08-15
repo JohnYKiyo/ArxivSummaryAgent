@@ -1,9 +1,16 @@
 """Translation tools for arXiv papers."""
 
+import asyncio
 import json
 import os
 import re
 from typing import Dict, List
+
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
+
+# from arxiv.agents.chunk_translator_agent import chunk_translator_agent
 
 
 def read_file_for_translation(file_path: str) -> Dict:
@@ -145,7 +152,7 @@ def extract_paper_metadata(content: str, file_type: str) -> Dict:
     return metadata
 
 
-def split_tex_content(content: str, max_chunk_size: int = 8000) -> List[Dict]:
+def split_tex_content(content: str, max_chunk_size: int = 10000) -> List[Dict]:
     """
     TeXファイルの内容を適切なサイズに分割
 
@@ -378,6 +385,150 @@ def translation_tex_splitter_tool(content: str, max_chunk_size: int = 8000) -> s
         str: JSON文字列
     """
     result = split_tex_content(content, max_chunk_size)
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+def append_translation_to_markdown(
+    translated_chunk: str,
+    paper_id: str,
+    output_dir: str = "agent_outputs",
+) -> Dict:
+    """
+    翻訳されたチャンクをmarkdownファイルに追記する
+
+    Args:
+        translated_chunk: 翻訳されたチャンクのコンテンツ
+        paper_id: 論文ID
+        output_dir: 出力ディレクトリ
+
+    Returns:
+        Dict: {
+            'success': bool,
+            'markdown_file': str (成功時),
+            'error': str (エラー時)
+        }
+    """
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
+        content_to_append = f"\n\n{translated_chunk}\n\n"
+        with open(markdown_file, "a", encoding="utf-8") as f:
+            f.write(content_to_append)
+        return {
+            "success": True,
+            "markdown_file": markdown_file,
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Error appending to markdown: {str(e)}"}
+
+
+def _call_agent(runner: Runner, user_id: str, session_id: str, query: str) -> str:
+    """
+    ユーザー提供のコードに基づき、ADK Runnerを正しく呼び出すヘルパー関数。
+    """
+    print(f"  - Calling agent for query (size: {len(query)})...")
+
+    # 1. エージェントへの入力メッセージを構築
+    content = types.Content(role="user", parts=[types.Part(text=query)])
+
+    # 2. 正しい引数でrunner.runを呼び出す
+    events = runner.run(user_id=user_id, session_id=session_id, new_message=content)
+
+    final_response = ""
+    # 3. イベントをループして最終応答を抽出
+    for event in events:
+        if event.is_final_response():
+            # テキスト部分が存在することを確認
+            if event.content and event.content.parts and event.content.parts[0].text:
+                final_response = event.content.parts[0].text
+                break  # 最初の最終応答が見つかればループを抜ける
+
+    if not final_response:
+        print("  - Warning: No final response found in agent events.")
+
+    print("  - Agent call finished.")
+    return final_response
+
+
+def process_and_translate_chunks(chunks_json: str, paper_id: str) -> Dict:
+    """
+    受け取ったチャンクのリストをループ処理し、翻訳してMarkdownファイルに追記する。
+    """
+    print("process_and_translate_chunks started.")
+    from arxiv.agents.chunk_translator_agent import chunk_translator_agent
+
+    try:
+        # RunnerとSessionServiceを一度だけ初期化
+        print("Initializing ADK Runner and SessionService...")
+        session_service = InMemorySessionService()
+
+        # SessionServiceを使ってセッションを作成する
+        USER_ID = "local_translator_user"
+        APP_NAME = "arxiv_translator_app"
+        # 同期関数内から非同期のcreate_sessionを呼び出す
+        session = asyncio.run(
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID)
+        )
+        print(f"Session created with ID: {session.id} for app: {APP_NAME}")
+
+        runner = Runner(
+            agent=chunk_translator_agent,
+            session_service=session_service,
+            app_name=APP_NAME,
+        )
+
+        chunks = json.loads(chunks_json)
+        output_dir = "agent_outputs"
+        markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
+
+        os.makedirs(output_dir, exist_ok=True)
+        if os.path.exists(markdown_file):
+            os.remove(markdown_file)
+
+        print(f"Loaded {len(chunks)} chunks. Starting translation loop...")
+
+        for i, chunk in enumerate(chunks):
+            content_to_translate = chunk.get("content")
+            chunk_title = chunk.get("title", f"Part {chunk.get('index', i + 1)}")
+
+            if not content_to_translate:
+                continue
+
+            print(f"Processing chunk {i + 1}/{len(chunks)}: '{chunk_title}'")
+
+            translated_chunk = _call_agent(
+                runner, USER_ID, session.id, content_to_translate
+            )
+
+            append_translation_to_markdown(
+                translated_chunk=translated_chunk,
+                paper_id=paper_id,
+                output_dir=output_dir,
+            )
+
+        print("All chunks processed successfully.")
+        return {"success": True, "file": markdown_file}
+
+    except Exception as e:
+        import traceback
+
+        print(f"An error occurred in process_and_translate_chunks: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def translation_chunks_processor_tool(chunks_json: str, paper_id: str) -> str:
+    """
+    Google ADK用のツール関数: チャンクのリストを翻訳し、一つのMarkdownファイルにまとめる。
+
+    Args:
+        chunks_json: translation_tex_splitter_toolから出力されたJSON文字列のチャンクリスト
+        paper_id: 論文ID
+
+    Returns:
+        str: JSON文字列 {'success': bool, 'file': str}
+    """
+    result = process_and_translate_chunks(chunks_json, paper_id)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 

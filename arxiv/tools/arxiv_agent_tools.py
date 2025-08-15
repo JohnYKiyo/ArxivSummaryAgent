@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import requests
 
 
-def fetch_eprint_from_arxiv(url: str, output_dir: str = "agent_outputs") -> Dict:
+def _fetch_eprint_from_arxiv(url: str, output_dir: str = "agent_outputs") -> Dict:
     """
     Arxiv URLからe-printファイル一式をダウンロードする
 
@@ -165,7 +165,7 @@ def arxiv_eprint_fetcher_tool(
     """
     import json
 
-    result = fetch_eprint_from_arxiv(url, output_dir)
+    result = _fetch_eprint_from_arxiv(url, output_dir)
 
     if result["success"]:
         # ファイルの種類を分類
@@ -188,7 +188,7 @@ def arxiv_eprint_fetcher_tool(
     return json.dumps(summary, ensure_ascii=False, indent=2)
 
 
-def get_all_files(paper_dir: str) -> Dict:
+def _get_all_files(paper_dir: str) -> Dict:
     """
     論文ディレクトリ内のすべてのファイルを取得
 
@@ -233,7 +233,7 @@ def get_all_files(paper_dir: str) -> Dict:
         return {"success": False, "error": f"Error getting files: {str(e)}"}
 
 
-def read_file_content(file_path: str) -> Dict:
+def _read_file_content(file_path: str) -> Dict:
     """
     ファイルの内容を読み込む
 
@@ -281,7 +281,7 @@ def read_file_content(file_path: str) -> Dict:
         return {"success": False, "error": f"Error reading file: {str(e)}"}
 
 
-def expand_tex_file(tex_file_path: str, output_dir: Optional[str] = None) -> Dict:
+def _expand_tex_file(tex_file_path: str, output_dir: Optional[str] = None) -> Dict:
     """
     TeXファイルのinput文を展開して1つのファイルにする
 
@@ -392,7 +392,7 @@ def arxiv_file_lister_tool(paper_dir: str) -> str:
     """
     import json
 
-    result = get_all_files(paper_dir)
+    result = _get_all_files(paper_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
@@ -408,7 +408,7 @@ def arxiv_file_reader_tool(file_path: str) -> str:
     """
     import json
 
-    result = read_file_content(file_path)
+    result = _read_file_content(file_path)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
@@ -416,7 +416,7 @@ def arxiv_tex_expander_tool(
     tex_file_path: str, output_dir: Optional[str] = None
 ) -> str:
     """
-    Google ADK用のツール関数: TeXファイル展開
+    Google ADK用のツール関数: TeXファイル展開(TeXファイルのinput文を展開して1つのファイルにする)
 
     Args:
         tex_file_path: TeXファイルのパス
@@ -427,5 +427,5 @@ def arxiv_tex_expander_tool(
     """
     import json
 
-    result = expand_tex_file(tex_file_path, output_dir)
+    result = _expand_tex_file(tex_file_path, output_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)

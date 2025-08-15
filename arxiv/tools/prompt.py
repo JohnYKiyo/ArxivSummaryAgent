@@ -1,8 +1,4 @@
-"""Chunk translator agent for arXiv papers."""
-
-from google.adk.agents import Agent
-
-INSTRUCTION = """
+TRANSLATION_INSTRUCTION = """
 あなたは、学術論文のテキストを日本語に翻訳し、整形するプロフェッショナルです。
 与えられたテキストチャンクを、以下のルールに従って正確に日本語へ翻訳し、Markdown形式で出力してください。
 
@@ -31,11 +27,3 @@ begin table や begin 'tabular' のような環境は、パイプ '|' を使っ�
 begin figure 内のキャプション (caption ...) は、図のタイトルのようにイタリック体で記述してください。
 例: *図1: モデルのアーキテクチャ*
 """
-
-chunk_translator_agent = Agent(
-    name="chunk_translator_agent",
-    model="gemini-2.5-flash",
-    description="与えられたテキストチャンクを日本語に翻訳するエージェント",
-    instruction=INSTRUCTION,
-    output_key="translated_chunk",
-)

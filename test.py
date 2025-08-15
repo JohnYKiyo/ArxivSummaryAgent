@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 
-from arxiv.tools.translation_tools import translate_file_tool
+from src.tools.translation_tools import translate_file_tool
 
 load_dotenv(verbose=True)
 load_dotenv(".env")

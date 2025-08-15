@@ -14,22 +14,18 @@ INSTRUCTION = """
 """
 
 
+class Metadata(BaseModel):
+    title: Optional[str] = None
+    authors: Optional[str] = None
+    published_year: Optional[str] = None
+    url: Optional[str] = None
+
+
 class ArxivFormatOutput(BaseModel):
     status: Literal["success", "error"]
     input_file: str
     file_type: Literal["tex", "pdf"]
     paper_dir: Optional[str] = None
-
-
-class Metadata(BaseModel):
-    title: Optional[str] = None
-    authors: Optional[str] = None
-    abstract: Optional[str] = None
-
-
-class TranslationFormatOutput(BaseModel):
-    status: Literal["success", "error"]
-    markdown_file: str
     metadata: Optional[Metadata] = None
 
 
@@ -41,14 +37,4 @@ arxiv_format_agent = Agent(
     instruction=INSTRUCTION,
     output_schema=ArxivFormatOutput,
     output_key="arxiv_format_result",
-)
-
-# translation_agent用のformat_agent
-translation_format_agent = Agent(
-    name="translation_format_agent",
-    model="gemini-2.5-flash",
-    description="translation_agent用の出力形式を統一するエージェント",
-    instruction=INSTRUCTION,
-    output_schema=TranslationFormatOutput,
-    output_key="translation_format_result",
 )

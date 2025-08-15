@@ -1,6 +1,7 @@
 """Arxiv agent tools for paper processing."""
 
 import io
+import json
 import os
 import re
 import tarfile
@@ -8,6 +9,8 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import requests
+
+import arxiv
 
 
 def _fetch_eprint_from_arxiv(url: str, output_dir: str = "agent_outputs") -> Dict:
@@ -163,8 +166,6 @@ def arxiv_eprint_fetcher_tool(
     Returns:
         str: JSON文字列
     """
-    import json
-
     result = _fetch_eprint_from_arxiv(url, output_dir)
 
     if result["success"]:
@@ -390,8 +391,6 @@ def arxiv_file_lister_tool(paper_dir: str) -> str:
     Returns:
         str: JSON文字列
     """
-    import json
-
     result = _get_all_files(paper_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -406,8 +405,6 @@ def arxiv_file_reader_tool(file_path: str) -> str:
     Returns:
         str: JSON文字列
     """
-    import json
-
     result = _read_file_content(file_path)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -425,7 +422,36 @@ def arxiv_tex_expander_tool(
     Returns:
         str: JSON文字列
     """
-    import json
-
     result = _expand_tex_file(tex_file_path, output_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+def arxiv_metadata_fetcher_tool(paper_id: str) -> str:
+    """
+    Fetches metadata for a given arXiv paper ID.
+
+    Args:
+        paper_id: The arXiv paper ID (e.g., "1706.03762").
+
+    Returns:
+        A JSON string containing the paper's metadata (title, authors, summary, published date).
+    """
+    try:
+        search = arxiv.Search(id_list=[paper_id])
+        paper = next(search.results())
+
+        authors = [author.name for author in paper.authors]
+
+        metadata = {
+            "title": paper.title,
+            "authors": ", ".join(authors),
+            "published_year": str(paper.published.year),
+            "url": paper.entry_id,
+        }
+        return json.dumps(
+            {"success": True, "metadata": metadata}, ensure_ascii=False, indent=2
+        )
+    except Exception as e:
+        return json.dumps(
+            {"success": False, "error": str(e)}, ensure_ascii=False, indent=2
+        )

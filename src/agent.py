@@ -3,7 +3,9 @@
 from google.adk.agents import LlmAgent
 from google.adk.tools.agent_tool import AgentTool
 
-from src.agents import arxiv_agent, summary_agent, translation_agent
+from src.agents.arxiv_agent import arxiv_agent
+from src.agents.summary_agent import summary_agent
+from src.agents.translation_agent import translation_agent
 
 # Instruction
 INSTRUCTION = """

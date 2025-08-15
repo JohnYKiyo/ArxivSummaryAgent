@@ -3,11 +3,12 @@
 import json
 import os
 import re
+import time
 from typing import Dict, List, Optional
 
-from google.genai import types
+from google import genai
 
-from src.agents.format_agent import Metadata
+from src.agents.schemas import Metadata
 from src.tools.llm.llm_model import call_model
 from src.tools.llm.prompt import TRANSLATION_INSTRUCTION
 
@@ -56,9 +57,14 @@ def _read_file_for_translation(file_path: str) -> Dict:
             file_type = "tex"
 
         elif file_path.endswith(".pdf"):
-            # PDFファイルをバイナリモードで読み込み
-            with open(file_path, "rb") as f:
-                content = f.read()
+            client = genai.Client()
+            content = client.files.upload(
+                file=file_path,
+            )
+            while content.state.name == "PROCESSING":
+                print("Waiting for file to be processed...")
+                time.sleep(2)  # 適宜待機時間を調整
+                content = client.files.get(name=content.name)  # 最新の状態を取得
             file_type = "pdf"
 
         else:
@@ -238,7 +244,6 @@ def _process_and_translate_chunks(
     受け取ったチャンクのリストをループ処理し、翻訳してMarkdownファイルに追記する。
     ADK Agentの代わりにgoogle-generativeaiを直接呼び出す。
     """
-    print("process_and_translate_chunks started.")
     try:
         markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
 
@@ -291,7 +296,7 @@ def _process_and_translate_chunks(
 
 
 def _translate_pdf_content(
-    pdf_content: bytes,
+    pdf_content,
     paper_id: str,
     metadata: Optional[Metadata] = None,
     output_dir: str = "agent_outputs",
@@ -299,7 +304,7 @@ def _translate_pdf_content(
     """
     Translate the content of a PDF file.
     """
-    print("process_and_translate_chunks started.")
+
     try:
         markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
 
@@ -320,7 +325,11 @@ def _translate_pdf_content(
                     f.write(f"著者:\n{metadata.authors}\n\n")
                 f.write("---\n\n")
 
-        response = call_model([pdf_content], system_instruction=TRANSLATION_INSTRUCTION)
+        response = call_model(
+            [pdf_content, "この文書を要約してください"],
+            system_instruction=TRANSLATION_INSTRUCTION,
+        )
+        print("response", response)
         _append_translation_to_markdown(
             translated_chunk=response,
             paper_id=paper_id,
@@ -386,9 +395,8 @@ def translate_file_tool(
         output = _process_and_translate_chunks(split, paper_id, metadata, output_dir)
 
     if readfile["file_type"] == "pdf":
-        pdf_artifact_py = types.Part.from_bytes(
-            data=readfile["content"], mime_type="application/pdf"
+        output = _translate_pdf_content(
+            readfile["content"], paper_id, metadata, output_dir
         )
-        output = _translate_pdf_content(pdf_artifact_py, paper_id, metadata, output_dir)
 
     return json.dumps(output, ensure_ascii=False, indent=2)

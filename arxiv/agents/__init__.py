@@ -1,4 +1,4 @@
-"""ArXiv agents module."""
+"""ArXiv agents."""
 
 from .arxiv_agent import arxiv_agent
 from .format_agent import arxiv_format_agent, translation_format_agent

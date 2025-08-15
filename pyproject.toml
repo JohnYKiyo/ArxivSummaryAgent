@@ -1,84 +1,60 @@
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+build-backend = "set-uptools.build_meta"
 
 [project]
 name = "arxiv-summary-agent"
-version = "0.1.0"
-description = "arXiv論文のTeXファイルをダウンロードし、翻訳・要約するエージェント"
+version = "0.2.0"
+description = "arXiv論文の要約と翻訳を自動で行うAIエージェント"
 authors = [
     {name = "Yu Kiyokawa", email = "dummn.marionette.7surspecies@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
-    "google-adk>=0.1.0",
+    "google-generativeai>=0.5.4",
     "requests>=2.31.0",
-    "pathlib2>=2.3.7",
+    "beautifulsoup4>=4.12.3",
+    "python-dotenv>=1.0.1",
+    "langchain>=0.2.1",
+    "langchain-google-genai>=1.0.4",
+    "arxiv>=2.1.0"
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0",
-    "mypy>=1.0.0",
+    "pytest>=8.2.2",
+    "pytest-cov>=5.0.0",
+    "black>=24.4.2",
+    "flake8>=7.0.0",
+    "mypy>=1.10.0",
+    "isort>=5.13.2",
+    "pre-commit>=3.7.1"
 ]
 
-[tool.pytest.ini_options]
-testpaths = ["test"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-v",
-    "--tb=short",
-    "--strict-markers",
-    "--disable-warnings",
-]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-]
+[tool.setuptools]
+packages = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+force_single_line = true
+combine_as_imports = true
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = [
-    "google.*",
-    "requests.*",
-]
 ignore_missing_imports = true 

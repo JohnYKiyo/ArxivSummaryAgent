@@ -2,7 +2,7 @@
 
 from google.adk.agents import Agent
 
-from arxiv.tools.translation_tools import translate_file_tool
+from src.tools.translation_tools import translate_file_tool
 
 INSTRUCTION = """
 あなたはarXiv論文翻訳エージェントです。

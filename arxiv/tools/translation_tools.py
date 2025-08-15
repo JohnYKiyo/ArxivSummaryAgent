@@ -5,8 +5,23 @@ import os
 import re
 from typing import Dict, List, Optional
 
-from arxiv.tools.llm_model import call_model
-from arxiv.tools.prompt import TRANSLATION_INSTRUCTION
+from arxiv.agents.format_agent import Metadata
+from arxiv.tools.llm.llm_model import call_model
+from arxiv.tools.llm.prompt import TRANSLATION_INSTRUCTION
+
+
+def _extract_tex_metadata(content: str) -> Dict[str, Optional[str]]:
+    """Extracts title and author from TeX content using regex."""
+    title_pattern = re.compile(r"\\title\{([^}]+)\}", re.DOTALL)
+    author_pattern = re.compile(r"\\author\{([^}]+)\}", re.DOTALL)
+
+    title_match = title_pattern.search(content)
+    author_match = author_pattern.search(content)
+
+    return {
+        "title": title_match.group(1).strip() if title_match else None,
+        "author": author_match.group(1).strip() if author_match else None,
+    }
 
 
 def read_file_for_translation(file_path: str) -> Dict:
@@ -215,7 +230,7 @@ def _append_translation_to_markdown(
     try:
         os.makedirs(output_dir, exist_ok=True)
         markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
-        content_to_append = f"\n\n{translated_chunk}\n\n"
+        content_to_append = f"{translated_chunk}\n"
         with open(markdown_file, "a", encoding="utf-8") as f:
             f.write(content_to_append)
         return {
@@ -227,7 +242,10 @@ def _append_translation_to_markdown(
 
 
 def process_and_translate_chunks(
-    chunks: list, paper_id: str, output_dir: str = "agent_outputs"
+    chunks: list,
+    paper_id: str,
+    metadata: Optional[Metadata] = None,
+    output_dir: str = "agent_outputs",
 ) -> Dict:
     """
     受け取ったチャンクのリストをループ処理し、翻訳してMarkdownファイルに追記する。
@@ -240,6 +258,19 @@ def process_and_translate_chunks(
         os.makedirs(output_dir, exist_ok=True)
         if os.path.exists(markdown_file):
             os.remove(markdown_file)
+
+        # メタデータを書き込む
+        if metadata:
+            with open(markdown_file, "w", encoding="utf-8") as f:
+                if metadata.title:
+                    f.write(f"# {metadata.title}\n\n")
+                if metadata.url:
+                    f.write(f"URL: {metadata.url}\n\n")
+                if metadata.published_year:
+                    f.write(f"発表年: {metadata.published_year}\n\n")
+                if metadata.authors:
+                    f.write(f"著者:\n{metadata.authors}\n\n")
+                f.write("---\n\n")
 
         print(f"Loaded {len(chunks)} chunks. Starting translation loop...")
 
@@ -273,11 +304,25 @@ def process_and_translate_chunks(
 
 
 def translate_file_tool(
-    file_path: str, paper_id: str, output_dir: Optional[str] = "agent_outputs"
+    file_path: str,
+    paper_id: str,
+    title: Optional[str] = None,
+    published_year: Optional[str] = None,
+    authors: Optional[str] = None,
+    url: Optional[str] = None,
+    output_dir: Optional[str] = "agent_outputs",
 ) -> str:
     """
     Google ADK用のツール関数: 翻訳
     """
+    # 既存のメタデータをセット
+    metadata = Metadata(
+        title=title,
+        published_year=published_year,
+        authors=authors,
+        url=url,
+    )
+
     readfile = read_file_for_translation(file_path)
     if not readfile["success"]:
         return json.dumps(
@@ -286,7 +331,24 @@ def translate_file_tool(
             indent=2,
         )
 
+    # TeXファイルからメタデータを抽出し、整形する
+    if readfile["file_type"] == "tex":
+        tex_metadata = _extract_tex_metadata(readfile["content"])
+        if tex_metadata["title"]:
+            # 改行をスペースに置換し、余分なスペースを削除
+            formatted_title = re.sub(r"\\s+", " ", tex_metadata["title"]).strip()
+            metadata.title = formatted_title
+        if tex_metadata["author"]:
+            # TeXのコマンドや改行を整形
+            author_info = tex_metadata["author"]
+            author_info = re.sub(
+                r"\\s+", " ", author_info
+            ).strip()  # Newlines and extra spaces
+            author_info = author_info.replace("\\\\", ", ")  # Line breaks
+            author_info = re.sub(r"\\and\\b", ", ", author_info)  # \\and command
+            metadata.authors = author_info
+
     split = split_tex_content(readfile["content"])
-    output = process_and_translate_chunks(split, paper_id, output_dir)
+    output = process_and_translate_chunks(split, paper_id, metadata, output_dir)
 
     return json.dumps(output, ensure_ascii=False, indent=2)

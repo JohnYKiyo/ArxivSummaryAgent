@@ -8,6 +8,7 @@ from arxiv.tools import (
     arxiv_eprint_fetcher_tool,
     arxiv_file_lister_tool,
     arxiv_file_reader_tool,
+    arxiv_metadata_fetcher_tool,
     arxiv_tex_expander_tool,
 )
 
@@ -23,13 +24,17 @@ INSTRUCTION = """
    - arxiv_eprint_fetcher_toolを使用
    - output_dirは特に指定しなければNoneにする（デフォルトでagent_outputsディレクトリに保存される）
 
-3. **メインファイル特定**:
+3. **メタデータ取得**:
+    - ダウンロード結果からpaper_idを取得
+    - arxiv_metadata_fetcher_toolを使用して、論文のメタデータ（タイトル, 著者, 発行年, URL）を取得する
+
+4. **メインファイル特定**:
    - arxiv_file_lister_toolを使ってファイル一覧を取得
    - arxiv_file_reader_toolを使って各ファイルの内容を確認
    - 取得したファイル情報を分析して、LLMでメインファイルを特定
    - メインファイルが見つからない場合はエラー
 
-4. **TeXファイル展開**:
+5. **TeXファイル展開**:
    - メインファイルが.texの場合、input文を展開して1つのファイルに統合
    - メインファイルがPDFの場合は展開不要
 
@@ -58,6 +63,7 @@ INSTRUCTION = """
   - input_file: str
   - file_type: Literal["tex", "pdf"]
   - paper_dir: Optional[str] = None # main_file_path
+  - metadata: Optional[Metadata] = None # 取得したメタデータをここに格納
 - 最後にarxiv_format_agentを呼び出して、出力を整形すること。
 
 なるべく日本語で応答してください。
@@ -73,6 +79,7 @@ arxiv_agent = Agent(
         arxiv_file_lister_tool,
         arxiv_file_reader_tool,
         arxiv_tex_expander_tool,
+        arxiv_metadata_fetcher_tool,
         AgentTool(
             agent=arxiv_format_agent,
             skip_summarization=False,

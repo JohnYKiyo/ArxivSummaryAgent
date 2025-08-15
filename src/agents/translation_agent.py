@@ -10,12 +10,10 @@ INSTRUCTION = """
 ## 役割
 - 対象となる論文のTeXファイルを読み込み、内容を翻訳してMarkdownファイルとして保存します。
 
-
 ## 処理手順
-1. `translation_file_reader_tool` を使って入力ファイルを読み込みます。paper_id とファイル内容（content）を取得してください。
-2. `translation_tex_splitter_tool` を使って、ファイル内容をチャンクに分割します。
-3. `translation_chunks_processor_tool` を呼び出します。引数として、ステップ2で得られたチャンクのリストと、ステップ1で得られたpaper_idを渡してください。
-4. `translation_chunks_processor_tool` から返されたファイルパスが、最終的な成果物です。
+1. `translate_file_tool` を使って、入力ファイルを翻訳します。
+2. `translate_file_tool` から返されたファイルパスが、最終的な成果物です。
+
 
 常に日本語で応答してください。
 """

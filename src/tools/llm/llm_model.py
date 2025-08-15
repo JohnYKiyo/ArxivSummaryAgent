@@ -5,7 +5,7 @@ from google.genai import types
 
 
 def call_model(
-    query: str,
+    query: list[str, types.Part],
     model: Optional[str] = "gemini-2.5-flash",
     system_instruction: Optional[str] = "",
 ) -> str:

@@ -110,9 +110,13 @@ def summary_tool(
         return f"Error reading file at {content_file_path}: {e}"
 
     if type == "review":
-        summary = call_model(content_to_summary, system_instruction=REVIEW_INSTRUCTION)
+        summary = call_model(
+            [content_to_summary], system_instruction=REVIEW_INSTRUCTION
+        )
     elif type == "normal":
-        summary = call_model(content_to_summary, system_instruction=NORMAL_INSTRUCTION)
+        summary = call_model(
+            [content_to_summary], system_instruction=NORMAL_INSTRUCTION
+        )
     else:
         return f"Invalid type: {type}"
 

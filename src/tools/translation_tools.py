@@ -326,7 +326,7 @@ def _translate_pdf_content(
                 f.write("---\n\n")
 
         response = call_model(
-            [pdf_content, "この文書を要約してください"],
+            [pdf_content],
             system_instruction=TRANSLATION_INSTRUCTION,
         )
         print("response", response)

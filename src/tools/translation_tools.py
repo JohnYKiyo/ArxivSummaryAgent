@@ -5,6 +5,8 @@ import os
 import re
 from typing import Dict, List, Optional
 
+from google.genai import types
+
 from src.agents.format_agent import Metadata
 from src.tools.llm.llm_model import call_model
 from src.tools.llm.prompt import TRANSLATION_INSTRUCTION
@@ -24,7 +26,7 @@ def _extract_tex_metadata(content: str) -> Dict[str, Optional[str]]:
     }
 
 
-def read_file_for_translation(file_path: str) -> Dict:
+def _read_file_for_translation(file_path: str) -> Dict:
     """
     翻訳用にファイルを読み込む
 
@@ -54,9 +56,9 @@ def read_file_for_translation(file_path: str) -> Dict:
             file_type = "tex"
 
         elif file_path.endswith(".pdf"):
-            # PDFファイルの場合は、サイズ情報のみ提供
-            # 実際のPDF処理は別途実装が必要
-            content = f"[PDF file - {file_size} bytes - PDF processing required]"
+            # PDFファイルをバイナリモードで読み込み
+            with open(file_path, "rb") as f:
+                content = f.read()
             file_type = "pdf"
 
         else:
@@ -81,7 +83,7 @@ def read_file_for_translation(file_path: str) -> Dict:
         return {"success": False, "error": f"Error reading file: {str(e)}"}
 
 
-def split_tex_content(content: str, max_chunk_size: int = 10000) -> List[Dict]:
+def _split_tex_content(content: str, max_chunk_size: int = 10000) -> List[Dict]:
     """
     TeXファイルの内容を適切なサイズに分割
 
@@ -192,21 +194,6 @@ def split_tex_content(content: str, max_chunk_size: int = 10000) -> List[Dict]:
     return chunks
 
 
-# Google ADK用のツール関数
-def translation_file_reader_tool(file_path: str) -> str:
-    """
-    Google ADK用のツール関数: 翻訳用ファイル読み込み
-
-    Args:
-        file_path: ファイルのパス
-
-    Returns:
-        str: JSON文字列
-    """
-    result = read_file_for_translation(file_path)
-    return json.dumps(result, ensure_ascii=False, indent=2)
-
-
 def _append_translation_to_markdown(
     translated_chunk: str,
     paper_id: str,
@@ -241,7 +228,7 @@ def _append_translation_to_markdown(
         return {"success": False, "error": f"Error appending to markdown: {str(e)}"}
 
 
-def process_and_translate_chunks(
+def _process_and_translate_chunks(
     chunks: list,
     paper_id: str,
     metadata: Optional[Metadata] = None,
@@ -283,7 +270,7 @@ def process_and_translate_chunks(
 
             print(f"Processing chunk {i + 1}/{len(chunks)}: '{chunk_title}'")
             translated_chunk = call_model(
-                content_to_translate, system_instruction=TRANSLATION_INSTRUCTION
+                [content_to_translate], system_instruction=TRANSLATION_INSTRUCTION
             )
 
             _append_translation_to_markdown(
@@ -293,6 +280,53 @@ def process_and_translate_chunks(
             )
 
         print("All chunks processed successfully.")
+        return {"success": True, "file": markdown_file}
+
+    except Exception as e:
+        import traceback
+
+        print(f"An error occurred in process_and_translate_chunks: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def _translate_pdf_content(
+    pdf_content: bytes,
+    paper_id: str,
+    metadata: Optional[Metadata] = None,
+    output_dir: str = "agent_outputs",
+) -> str:
+    """
+    Translate the content of a PDF file.
+    """
+    print("process_and_translate_chunks started.")
+    try:
+        markdown_file = os.path.join(output_dir, f"{paper_id}_translated.md")
+
+        os.makedirs(output_dir, exist_ok=True)
+        if os.path.exists(markdown_file):
+            os.remove(markdown_file)
+
+        # メタデータを書き込む
+        if metadata:
+            with open(markdown_file, "w", encoding="utf-8") as f:
+                if metadata.title:
+                    f.write(f"# {metadata.title}\n\n")
+                if metadata.url:
+                    f.write(f"URL: {metadata.url}\n\n")
+                if metadata.published_year:
+                    f.write(f"発表年: {metadata.published_year}\n\n")
+                if metadata.authors:
+                    f.write(f"著者:\n{metadata.authors}\n\n")
+                f.write("---\n\n")
+
+        response = call_model([pdf_content], system_instruction=TRANSLATION_INSTRUCTION)
+        _append_translation_to_markdown(
+            translated_chunk=response,
+            paper_id=paper_id,
+            output_dir=output_dir,
+        )
+        print("pdf content processed successfully.")
         return {"success": True, "file": markdown_file}
 
     except Exception as e:
@@ -323,7 +357,7 @@ def translate_file_tool(
         url=url,
     )
 
-    readfile = read_file_for_translation(file_path)
+    readfile = _read_file_for_translation(file_path)
     if not readfile["success"]:
         return json.dumps(
             {"success": False, "error": readfile["error"]},
@@ -348,7 +382,13 @@ def translate_file_tool(
             author_info = re.sub(r"\\and\\b", ", ", author_info)  # \\and command
             metadata.authors = author_info
 
-    split = split_tex_content(readfile["content"])
-    output = process_and_translate_chunks(split, paper_id, metadata, output_dir)
+        split = _split_tex_content(readfile["content"])
+        output = _process_and_translate_chunks(split, paper_id, metadata, output_dir)
+
+    if readfile["file_type"] == "pdf":
+        pdf_artifact_py = types.Part.from_bytes(
+            data=readfile["content"], mime_type="application/pdf"
+        )
+        output = _translate_pdf_content(pdf_artifact_py, paper_id, metadata, output_dir)
 
     return json.dumps(output, ensure_ascii=False, indent=2)

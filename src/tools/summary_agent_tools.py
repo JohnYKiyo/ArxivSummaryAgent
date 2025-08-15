@@ -32,7 +32,8 @@ URL: [論文 URL をここに記入]
 
 ## 比較
 
-[それぞれのレビュー内容/サーベイ内容を簡潔にまとめ、論文内で使われている比較表などわかりやすく説明]
+[それぞれのレビュー内容/サーベイ内容をまとめてください。]
+[論文内で使われている比較表などを含めてください。]
 
 ## 議論
 
@@ -85,22 +86,28 @@ URL: [論文 URL をここに記入]
 
 
 def summary_tool(
-    file_path: str, output_dir: str, type: Literal["review", "normal"]
+    content_file_path: str,
+    output_file_path: str,
+    output_dir: str,
+    type: Literal["review", "normal"],
 ) -> str:
     """
-    Review the summary of a file.
+    Summarize the content of a file.
 
     Args:
-        file_path: The path to the file to review.
+        content_file_path: The path to the file to review.
+        output_file_path: The path to the file to save the summary.
+        output_dir: The directory to save the file in.
+        type: The type of the file to review.
 
     Returns:
-        The review of the summary of the file as a string, or an error message if it fails.
+        The summary of the content of the file as a string, or an error message if it fails.
     """
 
     try:
-        content_to_summary = load_file_tool(file_path)
+        content_to_summary = load_file_tool(content_file_path)
     except Exception as e:
-        return f"Error reading file at {file_path}: {e}"
+        return f"Error reading file at {content_file_path}: {e}"
 
     if type == "review":
         summary = call_model(content_to_summary, system_instruction=REVIEW_INSTRUCTION)
@@ -109,7 +116,7 @@ def summary_tool(
     else:
         return f"Invalid type: {type}"
 
-    text = save_markdown_tool(output_dir, file_path, summary)
+    text = save_markdown_tool(output_dir, output_file_path, summary)
     return text
 
 

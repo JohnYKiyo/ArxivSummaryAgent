@@ -8,6 +8,8 @@ INSTRUCTION = """
 その後、レビュー/サマリー論文か通常論文かを判断して、summary_tool で要約してください。
 レビュー論文/サマリー論文の場合は type に "review" を指定してください。
 通常論文の場合は type に "normal" を指定してください。
+
+最後に元のagentに結果を返してください。
 """
 
 summary_agent = Agent(

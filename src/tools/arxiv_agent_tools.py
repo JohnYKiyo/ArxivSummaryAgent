@@ -1,14 +1,11 @@
 """Arxiv agent tools for paper processing."""
 
-import io
 import json
 import os
 import re
 import tarfile
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from urllib.parse import urlparse
-
-import requests
 
 import arxiv
 
@@ -39,36 +36,32 @@ def _fetch_eprint_from_arxiv(url: str, output_dir: str = "agent_outputs") -> Dic
         paper_dir = os.path.join(output_dir, arxiv_id)
         os.makedirs(paper_dir, exist_ok=True)
 
-        # e-printファイルをダウンロード
-        eprint_url = f"https://arxiv.org/e-print/{arxiv_id}"
-        response = requests.get(eprint_url, timeout=30)
-        response.raise_for_status()
+        # arxivライブラリを使って論文を検索
+        search = arxiv.Search(id_list=[arxiv_id])
+        paper = next(search.results())
 
-        # コンテンツタイプを確認
-        content_type = response.headers.get("content-type", "")
+        # ソースファイルをダウンロード
+        paper.download_source(dirpath=paper_dir, filename=f"{arxiv_id}.tar.gz")
 
-        if (
-            "application/x-eprint-tar" in content_type
-            or "application/gzip" in content_type
-        ):
-            # tar.gzファイルの場合
-            files = _extract_eprint_from_tar(response.content, paper_dir)
-        elif "text/plain" in content_type or "application/octet-stream" in content_type:
-            # 直接ファイルの場合
-            files = _save_single_file(response.text, paper_dir, arxiv_id)
-        else:
-            return {
-                "success": False,
-                "error": f"Unexpected content type: {content_type}",
-            }
+        # tarファイルを展開
+        tar_path = os.path.join(paper_dir, f"{arxiv_id}.tar.gz")
+        with tarfile.open(tar_path, "r:gz") as tar:
+            tar.extractall(path=paper_dir)
+
+        # tarファイルを削除
+        os.remove(tar_path)
+
+        # 展開されたファイル一覧を取得
+        files = []
+        for root, _, filenames in os.walk(paper_dir):
+            for filename in filenames:
+                files.append(os.path.join(root, filename))
 
         if not files:
-            return {"success": False, "error": "No files found"}
+            return {"success": False, "error": "No files found after extraction"}
 
         return {"success": True, "paper_dir": paper_dir, "files": files}
 
-    except requests.RequestException as e:
-        return {"success": False, "error": f"Network error: {str(e)}"}
     except Exception as e:
         return {"success": False, "error": f"Unexpected error: {str(e)}"}
 
@@ -94,62 +87,6 @@ def _extract_arxiv_id(url: str) -> Optional[str]:
         return paper_id
     except Exception:
         return None
-
-
-def _extract_eprint_from_tar(tar_content: bytes, output_dir: str) -> List[str]:
-    """tar.gzファイルからe-printファイル一式を抽出して保存"""
-    files = []
-    try:
-        with tarfile.open(fileobj=io.BytesIO(tar_content), mode="r:gz") as tar:
-            # すべてのファイルを抽出
-            for member in tar.getmembers():
-                # ファイルでない場合はスキップ
-                if not member.isfile():
-                    continue
-
-                # ファイルを読み込む
-                f = tar.extractfile(member)
-                if f is None:
-                    continue
-
-                try:
-                    content = f.read()
-                finally:
-                    f.close()
-
-                # ディレクトリ構造を保持してファイルパスを作成
-                filepath = os.path.join(output_dir, member.name)
-
-                # ディレクトリが存在しない場合は作成
-                os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-                # テキストファイルの場合はUTF-8でデコード
-                try:
-                    text_content = content.decode("utf-8", errors="ignore")
-                    with open(filepath, "w", encoding="utf-8") as f:
-                        f.write(text_content)
-                except UnicodeDecodeError:
-                    # バイナリファイルの場合はそのまま保存
-                    with open(filepath, "wb") as f:
-                        f.write(content)
-
-                files.append(filepath)
-
-    except Exception as e:
-        print(f"Error extracting e-print from tar: {e}")
-
-    return files
-
-
-def _save_single_file(content: str, output_dir: str, arxiv_id: str) -> List[str]:
-    """単一のファイルを保存"""
-    filename = f"{arxiv_id}.tex"
-    filepath = os.path.join(output_dir, filename)
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(content)
-
-    return [filepath]
 
 
 # Google ADK用のツール関数
@@ -189,7 +126,7 @@ def arxiv_eprint_fetcher_tool(
     return json.dumps(summary, ensure_ascii=False, indent=2)
 
 
-def _get_all_files(paper_dir: str) -> Dict:
+def get_all_files(paper_dir: str) -> Dict:
     """
     論文ディレクトリ内のすべてのファイルを取得
 
@@ -391,7 +328,7 @@ def arxiv_file_lister_tool(paper_dir: str) -> str:
     Returns:
         str: JSON文字列
     """
-    result = _get_all_files(paper_dir)
+    result = get_all_files(paper_dir)
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 

@@ -3,8 +3,8 @@
 from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 
-from arxiv.agents.format_agent import arxiv_format_agent
-from arxiv.tools import (
+from src.agents.format_agent import arxiv_format_agent
+from src.tools import (
     arxiv_eprint_fetcher_tool,
     arxiv_file_lister_tool,
     arxiv_file_reader_tool,

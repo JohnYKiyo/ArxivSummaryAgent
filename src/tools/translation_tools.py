@@ -5,9 +5,9 @@ import os
 import re
 from typing import Dict, List, Optional
 
-from arxiv.agents.format_agent import Metadata
-from arxiv.tools.llm.llm_model import call_model
-from arxiv.tools.llm.prompt import TRANSLATION_INSTRUCTION
+from src.agents.format_agent import Metadata
+from src.tools.llm.llm_model import call_model
+from src.tools.llm.prompt import TRANSLATION_INSTRUCTION
 
 
 def _extract_tex_metadata(content: str) -> Dict[str, Optional[str]]:

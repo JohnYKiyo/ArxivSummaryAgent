@@ -1,7 +1,7 @@
 from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 
-from arxiv.tools.summary_agent_tools import read_file_tool, save_markdown_tool
+from src.tools.summary_agent_tools import read_file_tool, save_markdown_tool
 
 REVIEW_INSTRUCTION = """
 あなたはレビュー/サーベイ論文の要約を作成するエージェントです。

@@ -2,6 +2,7 @@
 
 from google.adk.agents import Agent
 
+from src.core.config import config
 from src.tools.translation_tools import translate_file_tool
 
 INSTRUCTION = """
@@ -20,7 +21,7 @@ INSTRUCTION = """
 
 translation_agent = Agent(
     name="arxiv_translation_agent",
-    model="gemini-2.5-flash",
+    model=config.GEMINI_MODEL,
     description="arXiv論文のPDF/TeXファイルを日本語に翻訳し、markdown形式で保存するエージェント",
     instruction=INSTRUCTION,
     tools=[

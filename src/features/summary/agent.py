@@ -1,5 +1,7 @@
 from google.adk.agents import Agent
 
+from src.core.config import config
+
 from .tools import load_file_tool
 from .tools import summary_tool
 
@@ -15,7 +17,7 @@ INSTRUCTION = """
 
 summary_agent = Agent(
     name="summary_agent",
-    model="gemini-2.5-flash",
+    model=config.GEMINI_MODEL,
     description="論文の要約を作成するエージェント",
     instruction=INSTRUCTION,
     tools=[

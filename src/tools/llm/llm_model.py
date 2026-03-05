@@ -3,10 +3,12 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
+from src.core.config import config
+
 
 def call_model(
-    query: list[str, types.Part],
-    model: Optional[str] = "gemini-2.5-flash",
+    query: list[str | types.Part],
+    model: Optional[str] = config.GEMINI_MODEL,
     system_instruction: Optional[str] = "",
 ) -> str:
     print(f"  - Calling agent for query (size: {len(query)})...")

@@ -2,6 +2,7 @@
 
 from google.adk.agents import Agent
 
+from src.core.config import config
 from src.core.schemas import ArxivFormatOutput
 
 INSTRUCTION = """
@@ -16,7 +17,7 @@ INSTRUCTION = """
 # arxiv_agent用のformat_agent
 arxiv_format_agent = Agent(
     name="arxiv_format_agent",
-    model="gemini-2.5-flash",
+    model=config.GEMINI_MODEL,
     description="arxiv_agent用の出力形式を統一するエージェント",
     instruction=INSTRUCTION,
     output_schema=ArxivFormatOutput,

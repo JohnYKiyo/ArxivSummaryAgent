@@ -6,7 +6,9 @@ from google.adk.tools.agent_tool import AgentTool
 from src.agents.arxiv_agent import arxiv_agent
 from src.agents.summary_agent import summary_agent
 from src.agents.translation_agent import translation_agent
-from src.tools.arxiv_agent_tools import arxiv_file_lister_tool, arxiv_file_reader_tool
+from src.core.config import config
+from src.tools.arxiv_agent_tools import arxiv_file_lister_tool
+from src.tools.arxiv_agent_tools import arxiv_file_reader_tool
 
 # Instruction
 INSTRUCTION = """
@@ -42,7 +44,7 @@ translation_tool = AgentTool(
 # arXiv論文処理・翻訳ワークフロー用Root Agent
 root_agent = LlmAgent(
     name="arxiv_paper_agent",
-    model="gemini-2.5-flash",
+    model=config.GEMINI_MODEL,
     description="arXiv論文の処理と翻訳を管理するルートエージェント",
     instruction=INSTRUCTION,
     sub_agents=[arxiv_agent, translation_agent, summary_agent],

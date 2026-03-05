@@ -4,13 +4,12 @@ from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 
 from src.agents.format_agent import arxiv_format_agent
-from src.tools.arxiv_agent_tools import (
-    arxiv_eprint_fetcher_tool,
-    arxiv_file_lister_tool,
-    arxiv_file_reader_tool,
-    arxiv_metadata_fetcher_tool,
-    arxiv_tex_expander_tool,
-)
+from src.core.config import config
+from src.tools.arxiv_agent_tools import arxiv_eprint_fetcher_tool
+from src.tools.arxiv_agent_tools import arxiv_file_lister_tool
+from src.tools.arxiv_agent_tools import arxiv_file_reader_tool
+from src.tools.arxiv_agent_tools import arxiv_metadata_fetcher_tool
+from src.tools.arxiv_agent_tools import arxiv_tex_expander_tool
 
 INSTRUCTION = """あなたはarXiv論文を処理する専門エージェントです。
 
@@ -47,7 +46,7 @@ INSTRUCTION = """あなたはarXiv論文を処理する専門エージェント�
 
 arxiv_agent = Agent(
     name="arxiv_agent",
-    model="gemini-2.5-flash",
+    model=config.GEMINI_MODEL,
     description="arXiv論文のダウンロード、LLMによるメインファイル特定、TeX展開を行うエージェント",
     instruction=INSTRUCTION,
     tools=[

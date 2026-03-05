@@ -9,12 +9,14 @@ from google.genai import types
 
 load_dotenv()
 
+from src.core.config import config
+
 
 async def get_simple_llm_response(type: Literal["gemini", "gpt"]):
     """純粋なLLM応答を取得するサンプル関数"""
 
     if type == "gemini":
-        llm = Gemini(model="gemini-2.5-flash")
+        llm = Gemini(model=config.GEMINI_MODEL)
     elif type == "gpt":
         llm = LiteLlm(model="gpt-5-mini")
     else:

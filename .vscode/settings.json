@@ -1,0 +1,10 @@
+{
+  // Pyre2 を無効化（エラーの主な原因）
+  "python.analysis.typeCheckingMode": "basic",
+
+  // Pylance にプロジェクトルートを認識させる（src.xxx のインポートを解決）
+  "python.analysis.extraPaths": [
+    "."
+  ]
+}
+
